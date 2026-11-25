@@ -37,7 +37,18 @@ function notify(s,bad=false){const e=$('message');e.textContent=s;e.className=ba
 function requireOk(result){if(result.error)throw result.error;return result.data}
 function closeDialog(id){$(id).close()}function openDialog(id){$(id).showModal()}
 function showSetup(){$('app').classList.add('hide');$('authArea').classList.add('hide');$('setupArea').classList.remove('hide');let c=readConfig();if(c){$('setupForm').elements.url.value=c.url;$('setupForm').elements.key.value=c.key}}
-function readConfig(){try{return JSON.parse(localStorage.getItem('fc_supabase_public_config')||'null')}catch{return null}}
+// Configuración pública para que cada visitante se conecte automáticamente.
+const DEFAULT_SUPABASE_CONFIG = Object.freeze({
+  url: 'https://yjopbbikmswwhutechya.supabase.co',
+  key: 'sb_publishable_b5jLI0DSlQyxCHiHj94H8A_yWGn9HS-'
+});
+function readConfig(){
+  try {
+    const saved=JSON.parse(localStorage.getItem('fc_supabase_public_config')||'null');
+    if(saved && saved.url===DEFAULT_SUPABASE_CONFIG.url && saved.key===DEFAULT_SUPABASE_CONFIG.key)return saved;
+  } catch(e){}
+  return DEFAULT_SUPABASE_CONFIG;
+}
 $('setupForm').onsubmit=e=>{e.preventDefault();const f=e.currentTarget;const url=f.elements.url.value.trim(),key=f.elements.key.value.trim();if(!/^https:\/\/.+/.test(url))return notify('URL inválida',true);if(/service_role|sb_secret_/.test(key))return notify('No uses una clave secreta',true);localStorage.setItem('fc_supabase_public_config',JSON.stringify({url,key}));boot()};
 async function boot(){const c=readConfig();$('setupArea').classList.add('hide');$('app').classList.add('hide');$('authArea').classList.add('hide');if(!c)return showSetup();if(!window.supabase){showSetup();return notify('No se pudo cargar la biblioteca Supabase. Revisa la conexión a internet.',true)}try{sb=window.supabase.createClient(c.url,c.key);const r=await sb.auth.getUser();user=r.data.user;if(user)await loadBusinesses();else $('authArea').classList.remove('hide')}catch(err){showSetup();notify(err.message,true)}}
 $('authToggle').onclick=()=>{authCreating=!authCreating;$('authTitle').textContent=authCreating?'Crear cuenta':'Iniciar sesión';$('authToggle').textContent=authCreating?'Ya tengo cuenta':'Crear cuenta nueva'};
